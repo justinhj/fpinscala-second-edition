@@ -114,7 +114,7 @@ object Traverse:
       override def traverse[G[_]: Applicative, B](f: A => G[B]): G[Tree[B]] =
         f(ta.head).map2(ta.tail.traverse(a => a.traverse(f)))(Tree(_, _))
   
-  given mapTraverse[K]: Traverse[Map[K, _]] with
+  given [K] => Traverse[Map[K, _]]:
     extension [A](m: Map[K, A])
       override def traverse[G[_]: Applicative, B](f: A => G[B]): G[Map[K, B]] =
         m.foldLeft(summon[Applicative[G]].unit(Map.empty[K, B])):

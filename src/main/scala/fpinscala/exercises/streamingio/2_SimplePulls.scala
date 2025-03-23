@@ -121,11 +121,19 @@ object SimplePulls:
 
     // Exercise 15.1
     def fromListViaUnfold[O](os: List[O]): Pull[O, Unit] =
-      ???
+      unfold(os)(os =>
+        os match
+          case Nil => Left(Nil)
+          case hd :: tl => Right((hd, tl))
+          ).map(_ => ())
 
     // Exercise 15.1
     def fromLazyListViaUnfold[O](os: LazyList[O]): Pull[O, Unit] =
-      ???
+      unfold(os)(os =>
+        os match
+          case hd #:: tl => Right((hd, tl))
+          case ll => Left(LazyList.empty)
+          ).map(_ => ())
 
     def continually[O](o: O): Pull[O, Nothing] =
       Output(o) >> continually(o)
@@ -146,7 +154,7 @@ object SimplePulls:
       def slidingMeanViaMapAccumulate(n: Int): Pull[Double, R] =
         ???
 
-    given [O]: Monad[[x] =>> Pull[O, x]] with
+    given [O] => Monad[[x] =>> Pull[O, x]]:
       def unit[A](a: => A): Pull[O, A] = Result(a)
       extension [A](pa: Pull[O, A])
         def flatMap[B](f: A => Pull[O, B]): Pull[O, B] =
@@ -189,7 +197,7 @@ object SimplePulls:
       def ++(that: => Stream[O]): Stream[O] =
         self >> that
 
-    given Monad[Stream] with
+    given Monad[Stream]:
       def unit[A](a: => A): Stream[A] = Pull.Output(a)
       extension [A](sa: Stream[A])
         def flatMap[B](f: A => Stream[B]): Stream[B] =
