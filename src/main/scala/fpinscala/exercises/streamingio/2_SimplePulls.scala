@@ -122,11 +122,11 @@ object SimplePulls:
 
     // Exercise 15.6
     def countViaMapAccumulate: Pull[Int, R] =
-      ???
+      mapAccumulate(0)((s, _) => (s + 1, s)).map(_._2)
 
     // Exercise 15.6
     def tallyViaMapAccumulate[O2 >: O](using m: Monoid[O2]): Pull[O2, R] =
-      ???
+      mapAccumulate(m.empty)((s, o) => (m.combine(s, o), m.combine(s, o))).map(_._2)
 
   object Pull:
     val done: Pull[Nothing, Unit] = Result(())
@@ -188,7 +188,10 @@ object SimplePulls:
 
       // Exercise 15.6
       def slidingMeanViaMapAccumulate(n: Int): Pull[Double, R] =
-        ???
+        def f(s: List[Int], o: Int): (List[Int], Double) =
+          val newS = (s :+ o).takeRight(n)
+          (newS, newS.sum.toDouble / newS.length)
+        self.mapAccumulate(List.fill(n)(0))(f).map(_._2)
 
     given [O] => Monad[[x] =>> Pull[O, x]]:
       def unit[A](a: => A): Pull[O, A] = Result(a)
