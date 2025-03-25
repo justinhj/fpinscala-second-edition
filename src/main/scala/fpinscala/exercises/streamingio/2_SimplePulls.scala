@@ -6,18 +6,27 @@ import fpinscala.answers.monoids.Monoid
 object SimplePulls:
 
   enum Pull[+O, +R]:
+    // Three types of Pull, the Result that delivers a final value of R
+    // Output which is an intermediate output of type O 
+    // and FlatMap which composes two Pulls. (?)
     case Result[+R](result: R) extends Pull[Nothing, R]
     case Output[+O](value: O) extends Pull[O, Unit]
     case FlatMap[X, +O, +R](source: Pull[O, X], f: X => Pull[O, R]) extends Pull[O, R]
 
+    // Advance the stream. Returning either a result in the Left
+    // or a tuple of the output and the rest of the stream in the Right.
     def step: Either[R, (O, Pull[O, R])] = this match
       case Result(r) => Left(r)
       case Output(o) => Right(o, Pull.done)
       case FlatMap(source, f) => 
         source match
+          // Here we handle that the left hand side is also a flatmap, 
+          // by recursively calling step on the left hand side.
           case FlatMap(s2, g) => s2.flatMap(x => g(x).flatMap(y => f(y))).step
           case other => other.step match
+            // If the left hand side is a result, we apply the function f to it.
             case Left(r) => f(r).step
+            // And if the left hand side is an output, we return the output and the rest of the stream.
             case Right((hd, tl)) => Right((hd, tl.flatMap(f)))
 
     @annotation.tailrec
@@ -52,15 +61,27 @@ object SimplePulls:
 
     // Exercise 15.3
     def drop(n: Int): Pull[O, R] =
-      ???
+      if (n > 0) then
+        uncons.flatMap:
+          case Left(r) => Result(r)
+          case Right((_, tl)) => tl.drop(n - 1)
+      else this
 
     // Exercise 15.3
     def takeWhile(f: O => Boolean): Pull[O, Pull[O, R]] =
-      ???
+      uncons.flatMap:
+        case Left(r) => Result(Result(r))
+        case Right((hd, tl)) =>
+          if f(hd) then Output(hd) >> tl.takeWhile(f)
+          else Result(tl)
     
     // Exercise 15.3
     def dropWhile(f: O => Boolean): Pull[Nothing, Pull[O, R]] =
-      ???
+      uncons.flatMap:
+        case Left(r) => Result(Result(r))
+        case Right((hd, tl)) =>
+          if f(hd) then tl.dropWhile(f)
+          else Result(Output(hd) >> tl)
 
     def mapOutput[O2](f: O => O2): Pull[O2, R] =
       uncons.flatMap:
@@ -84,7 +105,13 @@ object SimplePulls:
 
     // Exercise 15.4
     def tally[O2 >: O](using m: Monoid[O2]): Pull[O2, R] =
-      ???
+      def go(acc: O2, p: Pull[O, R]): Pull[O2, R] =
+        p.uncons.flatMap:
+          case Left(r) => Result(r)
+          case Right((hd, tl)) =>
+            val next = m.combine(hd, acc)
+            Output(next) >> go(next, tl)
+      Output(m.empty) >> go(m.empty, this)
 
     def mapAccumulate[S, O2](init: S)(f: (S, O) => (S, O2)): Pull[O2, (S, R)] =
       uncons.flatMap:
@@ -143,12 +170,21 @@ object SimplePulls:
 
     // Exercise 15.2
     def iterate[O](initial: O)(f: O => O): Pull[O, Nothing] =
-      ???
+      Output(initial) >> iterate(f(initial))(f) 
 
     extension [R](self: Pull[Int, R])
       // Exercise 15.5
       def slidingMean(n: Int): Pull[Double, R] =
-        ???
+        def avg(l: List[Int]): Double =
+          l.sum.toDouble / l.length
+        def go(lastN: List[Int], p: Pull[Int, R]): Pull[Double, R] =
+          p.uncons.flatMap:
+            case Left(r) => Result(r)
+            case Right((hd, tl)) =>
+              val newN = (lastN :+ hd).takeRight(n)
+              Output(avg(newN)) >> go(newN, tl)
+        val lastN = List.fill(n)(0)
+        Output(0.0) >> go(lastN, self)
 
       // Exercise 15.6
       def slidingMeanViaMapAccumulate(n: Int): Pull[Double, R] =
