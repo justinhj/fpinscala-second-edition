@@ -75,11 +75,11 @@ object Monoid:
 
   given functionMonoid[A, B](using mb: Monoid[B]): Monoid[A => B] with
     def combine(f: A => B, g: A => B) = ???
-    val empty: A => B = a => ???
+    val empty: A => B = a => mb.empty
 
   given mapMergeMonoid[K, V](using mv: Monoid[V]): Monoid[Map[K, V]] with
     def combine(a: Map[K, V], b: Map[K, V]) = ???
-    val empty = ???
+    val empty = Map.empty
 
   def bag[A](as: IndexedSeq[A]): Map[A, Int] =
     ???

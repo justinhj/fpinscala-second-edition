@@ -126,7 +126,7 @@ object Reader:
   extension [R, A](ra: Reader[R, A])
     def run(r: R): A = ra(r)
 
-  given [R] => Monad[Reader[R, _]]:
+  given readerMonad[R]: Monad[Reader[R, _]] with
     def unit[A](a: => A): Reader[R, A] = ???
     extension [A](fa: Reader[R, A])
       override def flatMap[B](f: A => Reader[R, B]) =
