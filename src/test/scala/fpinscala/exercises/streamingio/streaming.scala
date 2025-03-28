@@ -39,4 +39,34 @@ class SimplePullsTest extends FunSuite {
     // Assert the result matches
     assertEquals(result, singleElementList, "A single-element list should round-trip correctly")
   }
+
+  test("Pull.takeWhile should work correctly") {
+    val elements = List(1,3,5,7,9,10)
+    val pull = SimplePulls.Pull.fromList(elements).takeWhile(_ % 2 == 1)
+    val result = pull.toList
+    val expected = List(1,3,5,7,9)
+
+    // Assert the result matches
+    assertEquals(result, expected, "A list with initial matching elements")
+  }
+
+  test("Pull.dropWhile should work correctly") {
+    val elements = List(1,3,5,7,9,10,12,13)
+    val pull = SimplePulls.Pull.fromList(elements).dropWhile(_ % 2 == 1)
+    val result = pull.fold(List.newBuilder[Int])((bldr, o) => bldr += o)
+    val expected = List(10,12,13)
+
+    // Fold returns a tuple with 
+    assertEquals(result(0).toList, expected, "A list of the remaining elements")
+  }
+
+  test("Pull.filter should work correctly") {
+    val elements = List(1,2,3,5,4,7,9,8,10)
+    val pull = SimplePulls.Pull.fromList(elements).filter(_ % 2 == 0)
+    val result = pull.toList
+    val expected = List(2,4,8,10)
+
+    // Assert the result matches
+    assertEquals(result, expected, "Matching elements are kept")
+  }
 }
