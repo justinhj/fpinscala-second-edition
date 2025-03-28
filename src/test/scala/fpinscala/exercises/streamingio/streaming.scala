@@ -56,7 +56,8 @@ class SimplePullsTest extends FunSuite {
     val result = pull.fold(List.newBuilder[Int])((bldr, o) => bldr += o)
     val expected = List(10,12,13)
 
-    // Fold returns a tuple with 
+    // Fold returns a tuple with the result (a new pull with the reamining elements)
+    // and the output of the dropWhile which is empty
     assertEquals(result(0).toList, expected, "A list of the remaining elements")
   }
 
