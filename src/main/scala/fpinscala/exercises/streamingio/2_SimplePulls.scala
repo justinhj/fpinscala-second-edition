@@ -274,7 +274,7 @@ object SimplePullExamples:
 
   // Exercise 15.7
   def exists[I](f: I => Boolean): Pipe[I, Boolean] =
-    _.toPull.mapOutput(a => f(a)).toStream
+    _.toPull.mapOutput(a => f(a)).tally(using Monoid.booleanOr).toStream
 
   // Exercise 15.7
   // We want it to consume the stream and return false if it does not find 
