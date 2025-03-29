@@ -268,11 +268,11 @@ object SimplePullExamples:
 
   // Exercise 15.7
   def exists[I](f: I => Boolean): Pipe[I, Boolean] =
-    ???
+    _.toPull.mapOutput(a => f(a)).toStream
 
   // Exercise 15.7
   def existsHalting[I](f: I => Boolean): Pipe[I, Boolean] =
-    ???
+    ??? // _.toPull.dropWhile(a => !f(a)).toStream
 
   def countGt40K[I]: Pipe[I, Boolean] =
     count andThen existsHalting(_ > 40000)
