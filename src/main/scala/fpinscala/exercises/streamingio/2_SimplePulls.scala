@@ -94,6 +94,12 @@ object SimplePulls:
         case Right((hd, tl)) =>
           (if p(hd) then Output(hd) else Pull.done) >> tl.filter(p)
 
+    def exists(p: O => Boolean): Pull[Boolean, Unit] =
+      uncons.flatMap:
+        case Left(r) => Output(true) >> Result(())
+        case Right((hd, tl)) =>
+          if p(hd) then (Output(true) >> Result(())) else (Pull.done >> tl.exists(p))
+
     def count: Pull[Int, R] =
       def go(total: Int, p: Pull[O, R]): Pull[Int, R] =
         p.uncons.flatMap:
@@ -271,8 +277,10 @@ object SimplePullExamples:
     _.toPull.mapOutput(a => f(a)).toStream
 
   // Exercise 15.7
+  // We want it to consume the stream and return false if it does not find 
+  // an element or true and halt when it does
   def existsHalting[I](f: I => Boolean): Pipe[I, Boolean] =
-    ??? // _.toPull.dropWhile(a => !f(a)).toStream
+    _.toPull.exists(f).toStream
 
   def countGt40K[I]: Pipe[I, Boolean] =
     count andThen existsHalting(_ > 40000)
