@@ -299,11 +299,31 @@ object SimplePullExamples:
     try fromIterator(source.getLines).pipe(p).fold(m.empty)(m.combine)
     finally source.close()
 
-  def checkFileForGt40K(file: java.io.File): IO[Boolean] =
-    processFile(file, count andThen exists(_ > 40000))(using Monoid.booleanOr)
+  def pipeFile[A](
+    in: java.io.File,
+    out: java.io.File,
+    p: Pipe[String, String],
+  ): IO[Unit] = IO:
+    val source = scala.io.Source.fromFile(in)
+    try 
+      fromIterator(source.getLines).pipe(p).fold(List.newBuilder[String])((bldr, o) => bldr += o).result.foreach { line =>
+        val writer = new java.io.PrintWriter(new java.io.FileWriter(out, true))
+        try writer.println(line)
+        finally writer.flush()
+      }
+
+  def checkFileForGt40(file: java.io.File): IO[Boolean] =
+    processFile(file, count andThen exists(_ > 40))(using Monoid.booleanOr)
 
   def toCelsius(fahrenheit: Double): Double =
     (5.0 / 9.0) * (fahrenheit - 32.0)
 
+  def converterWrapper(in: String) : String = 
+    val fahrenheit = in.toDouble
+    val celsius = toCelsius(fahrenheit)
+    celsius.toString
+
   def convert(inputFile: String, outputFile: String): IO[Unit] =
-    ???
+    val in = new java.io.File(inputFile)
+    val out = new java.io.File(outputFile)
+    pipeFile(in, out, _.map(converterWrapper))
