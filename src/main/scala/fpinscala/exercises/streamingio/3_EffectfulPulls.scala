@@ -125,7 +125,9 @@ object EffectfulPulls:
 
     // Exercise 15.11
     def unfoldEval[F[_], O, R](init: R)(f: R => F[Either[R, (O, R)]]): Pull[F, O, R] =
-      ???
+      Pull.Eval(f(init)).flatMap:
+        case Left(r) => Result(r)
+        case Right((o, r2)) => Output(o) >> unfoldEval(r2)(f)
 
     extension [F[_], R](self: Pull[F, Int, R])
       def slidingMean(n: Int): Pull[F, Double, R] =
@@ -157,6 +159,7 @@ object EffectfulPulls:
   end Pull
 
   opaque type Stream[+F[_], +O] = Pull[F, O, Unit]
+
   object Stream:
     def empty: Stream[Nothing1, Nothing] = Pull.done
 
@@ -184,11 +187,13 @@ object EffectfulPulls:
 
     // Exercise 15.9
     def eval[F[_], O](fo: F[O]): Stream[F, O] =
-      ???
+      Pull.Eval(fo).flatMap(Pull.Output(_))
 
     // Exercise 15.11
     def unfoldEval[F[_], O, R](init: R)(f: R => F[Option[(O, R)]]): Stream[F, O] =
-      ???
+      Pull.Eval(f(init)).flatMap:
+        case None => Pull.done
+        case Some((o, r2)) => Pull.Output(o) >> unfoldEval(r2)(f)
 
     extension [F[_], O](self: Stream[F, O])
       def toPull: Pull[F, O, Unit] = self
@@ -222,7 +227,7 @@ object EffectfulPulls:
 
       // Exercise 15.10
       def mapEval[O2](f: O => F[O2]): Stream[F, O2] =
-        ???
+        Stream.flatMap(self)(o => Stream.eval(f(o)))
 
     extension [O](self: Stream[Nothing, O])
       def fold[A](init: A)(f: (A, O) => A): A = 
