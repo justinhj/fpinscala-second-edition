@@ -112,4 +112,26 @@ enum Input:
 case class Machine(locked: Boolean, candies: Int, coins: Int)
 
 object Candy:
-  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ???
+  def handleInput(input: Input): State[Machine, Unit] = 
+      input match
+        case Input.Coin => State(s => 
+            if(s.candies > 0 && s.locked == true)
+              ((), Machine(false, s.candies, s.coins + 1))
+            else
+              ((), Machine(s.locked, s.candies, s.coins))
+          )
+        case Input.Turn => State(s => 
+            if(s.locked == false && s.candies > 0)
+              ((), Machine(true, s.candies - 1, s.coins))
+            else
+              ((), Machine(s.locked, s.candies, s.coins))
+          )
+
+  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = 
+    State(s => 
+      var cs = s
+      for(input <- inputs)
+        val (a, s2) = handleInput(input).run(cs)
+        cs = s2
+      ((cs.coins, cs.candies), cs)
+    )
