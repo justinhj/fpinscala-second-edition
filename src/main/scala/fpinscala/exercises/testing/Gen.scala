@@ -19,7 +19,8 @@ object Prop:
   def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = ???
 
 object Gen:
-  def unit[A](a: => A): Gen[A] = ???
+  def unit[A](a: => A): Gen[A] = 
+    ??? // State.unit(a)
 
   extension [A](self: Gen[A])
     def flatMap[B](f: A => Gen[B]): Gen[B] = ???
