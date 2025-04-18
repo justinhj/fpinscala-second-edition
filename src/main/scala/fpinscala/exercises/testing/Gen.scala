@@ -14,13 +14,12 @@ shell, which you can fill in and modify while working through the chapter.
 
 trait Prop
 
-
 object Prop:
   def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = ???
 
 object Gen:
-  def unit[A](a: => A): Gen[A] = 
-    ??? // State.unit(a)
+  def unit[A](a: => A): Gen[A] = ???
+
 
   extension [A](self: Gen[A])
     def flatMap[B](f: A => Gen[B]): Gen[B] = ???
