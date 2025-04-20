@@ -8,8 +8,74 @@ import fpinscala.exercises.common.PropSuite
 import fpinscala.exercises.monoids.Monoid.*
 import fpinscala.exercises.monoids.Monoid.WC.*
 import fpinscala.exercises.parallelism.Nonblocking.*
+import munit.*
 
 import java.util.concurrent.Executors
+
+class WCMonoidSuite extends FunSuite {
+
+  test("combine two WC.Stub instances with single words") {
+    val stub = WC.Stub(" ")
+    val result = wcMonoid.combine(stub, stub)
+    assertEquals(result, WC.Stub("  "))
+  }
+  test("Part Combine when empty") {
+    val p1 = WC.Part("",0,"")
+    val p2 = WC.Part("",0,"")
+    val result = wcMonoid.combine(p1, p2)
+    assertEquals(result, WC.Part("",0,""))
+  }
+  test("Simple Part Combine") {
+    val p1 = WC.Part("",3,"")
+    val p2 = WC.Part("",5,"")
+    val result = wcMonoid.combine(p1, p2)
+    assertEquals(result, WC.Part("",8,""))
+  }
+  test("Merge middle word") {
+    val p1 = WC.Part("",3,"he")
+    val p2 = WC.Part("llo",5,"")
+    val result = wcMonoid.combine(p1, p2)
+    assertEquals(result, WC.Part("",9,""))
+  }
+  test("preserve left word and right word") {
+    val p1 = WC.Part("hello",0,"")
+    val p2 = WC.Part("",0,"world")
+    val result = wcMonoid.combine(p1, p2)
+    assertEquals(result, WC.Part("hello",0,"world"))
+  }
+  test("handle empty stub") {
+    val p1 = WC.Stub("")
+    val p2 = WC.Part("",0,"")
+    val result = wcMonoid.combine(p1, p2)
+    assertEquals(result, WC.Part("",0,""))
+  }
+  test("handle single word stub") {
+    val p1 = WC.Stub("hello")
+    val p2 = WC.Part("",0,"")
+    val result = wcMonoid.combine(p1, p2)
+    assertEquals(result, WC.Part("hello", 0, ""))
+  }
+  test("handle multiple word stub") {
+    val p1 = WC.Stub("hello")
+    val p2 = WC.Stub("world")
+    val result = wcMonoid.combine(p1, p2)
+    assertEquals(result, WC.Stub("helloworld"))
+  }
+  test("handle combine stub and part") {
+    val p1 = WC.Stub("norway")
+    val p2 = WC.Part("",2,"bob")
+    val result = wcMonoid.combine(p1, p2)
+    assertEquals(result, WC.Part("norway",2,"bob"))
+  }
+  test("count fail") {
+    val input = "zygxiuoshnlhtrekr ghvmxmt mgqfrbifyfckbl opvctas m xm gssznxmpcs amoazbtsvd nmemjmwraovo osyjnisbo embi i ypjmazdmipyujjuaw mfxkziufoqwwhja qaveozvix dafkadr rtabzkhpmkbrrmumcy slrrpeckytsoatnlq abenre"
+    assertEquals(count(input), 19)
+  }
+  test("count fail 2") {
+    val input = "ktzpyfeqzirjmanmfh hsszjxqfdwsfpivmx swqxfzdrutwn nbnrnfqhdcfhlb zlalwvrlp  vphoe echlrixxp dphxqepfyru uli nepjxvl sgpseorriqrfzgyo jixpujozsrw dtacizdb "
+    assertEquals(count(input), 19)
+  }
+}
 
 class MonoidSuite extends PropSuite:
   private val es = Executors.newFixedThreadPool(4)

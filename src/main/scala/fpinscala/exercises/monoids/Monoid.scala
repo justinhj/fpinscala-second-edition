@@ -92,9 +92,50 @@ object Monoid:
     case Stub(chars: String)
     case Part(lStub: String, words: Int, rStub: String)
 
-  lazy val wcMonoid: Monoid[WC] = ???
+  lazy val wcMonoid: Monoid[WC] = new:
+    def toPartMaybe(wc: WC): WC = 
+      wc match
+        case p: WC.Part => p // parts remain parts
+        case WC.Stub(chars) =>
+          val splitted = chars.split("\\s+", -1)
+          if(splitted.forall(_ == ""))
+            wc // all empty can remain a stub
+          else if(splitted.length == 1) // single words remain stubs
+            wc
+          else if(splitted.length == 2)
+            WC.Part(splitted(0), 0, splitted.last)
+          else if(splitted(0) == "" && splitted.last == "")
+            WC.Part("", splitted.length - 2, "")
+          else if(splitted.last == "")
+            WC.Part(splitted(0), splitted.length - 1, "")
+          else if(splitted(0) == "")
+            WC.Part("", splitted.length - 1, splitted.last)
+          else
+            WC.Part(splitted(0), splitted.length - 2, splitted.last)
 
-  def count(s: String): Int = ???
+    def empty = WC.Stub("")
+    def combine(a1: WC, a2: WC): WC = 
+      val left = toPartMaybe(a1)
+      val right = toPartMaybe(a2)
+      (left,right) match
+        case (WC.Part(ls1, lc, ls2), (WC.Part(rs1, rc, rs2))) => 
+          var newCount = lc
+          if ls2.length() > 0 || rs1.length() > 0 then
+            newCount += 1
+          newCount = newCount + rc
+          WC.Part(ls1, newCount, rs2) 
+        case (WC.Part(ls1, lc, ls2), (WC.Stub(rs1))) => 
+          WC.Part(ls1, lc, ls2 + rs1)
+        case (WC.Stub(ls1), WC.Part(rs1, rc, rs2)) => 
+          WC.Part(ls1 + rs1, rc, rs2)
+        case (WC.Stub(ls1), (WC.Stub(rs1))) => 
+          WC.Stub(ls1 + rs1)
+
+  def count(s: String): Int = 
+    val c1 = wcMonoid.combine(WC.Part("",0,""), WC.Stub(s))
+    wcMonoid.combine(c1, WC.Part("",0,"")) match
+      case WC.Stub(chars) => 1 
+      case WC.Part(lStub, words, rStub) => words + (if lStub.length() > 0 then 1 else 0) + (if rStub.length() > 0 then 1 else 0)
 
   given productMonoid[A, B](using ma: Monoid[A], mb: Monoid[B]): Monoid[(A, B)] with
     def combine(x: (A, B), y: (A, B)) = ???
@@ -105,10 +146,19 @@ object Monoid:
     val empty: A => B = a => mb.empty
 
   given mapMergeMonoid[K, V](using mv: Monoid[V]): Monoid[Map[K, V]] with
-    def combine(a: Map[K, V], b: Map[K, V]) = ???
+    def combine(a: Map[K, V], b: Map[K, V]) = 
+      for((kb,vb) <- b) {
+        a.get(kb) match
+          case None => a + ((kb, vb))
+          case Some(va) =>
+            a.updated(kb, mv.combine(va, vb))
+      }
+      a
     val empty = Map.empty
 
   def bag[A](as: IndexedSeq[A]): Map[A, Int] =
-    ???
+    as.foldLeft(Map.empty[A, Int])((z, a) => 
+        Monoid.mapMergeMonoid(using intAddition).combine(z, Map((a, 1)))
+      )
 
 end Monoid

@@ -37,7 +37,7 @@ enum LazyList[+A]:
     else 
       this match
         case Empty => LazyList.empty
-        case Cons(h, t) => t().take(n - 1)
+        case Cons(h, t) => t().drop(n - 1)
 
   def takeWhile(p: A => Boolean): LazyList[A] =
     this match
