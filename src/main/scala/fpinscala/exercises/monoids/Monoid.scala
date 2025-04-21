@@ -107,9 +107,9 @@ object Monoid:
           else if(splitted(0) == "" && splitted.last == "")
             WC.Part("", splitted.length - 2, "")
           else if(splitted.last == "")
-            WC.Part(splitted(0), splitted.length - 1, "")
+            WC.Part(splitted(0), splitted.length - 2, "")
           else if(splitted(0) == "")
-            WC.Part("", splitted.length - 1, splitted.last)
+            WC.Part("", splitted.length - 2, splitted.last)
           else
             WC.Part(splitted(0), splitted.length - 2, splitted.last)
 
@@ -133,8 +133,9 @@ object Monoid:
 
   def count(s: String): Int = 
     val c1 = wcMonoid.combine(WC.Part("",0,""), WC.Stub(s))
-    wcMonoid.combine(c1, WC.Part("",0,"")) match
-      case WC.Stub(chars) => 1 
+    val c2 = wcMonoid.combine(c1, WC.Part("",0,""))
+    c2 match
+      case WC.Stub(chars) => if(chars.forall(_ == ' ')) 0 else 1 
       case WC.Part(lStub, words, rStub) => words + (if lStub.length() > 0 then 1 else 0) + (if rStub.length() > 0 then 1 else 0)
 
   given productMonoid[A, B](using ma: Monoid[A], mb: Monoid[B]): Monoid[(A, B)] with

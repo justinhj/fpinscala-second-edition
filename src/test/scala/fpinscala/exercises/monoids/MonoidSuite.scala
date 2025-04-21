@@ -71,9 +71,21 @@ class WCMonoidSuite extends FunSuite {
     val input = "zygxiuoshnlhtrekr ghvmxmt mgqfrbifyfckbl opvctas m xm gssznxmpcs amoazbtsvd nmemjmwraovo osyjnisbo embi i ypjmazdmipyujjuaw mfxkziufoqwwhja qaveozvix dafkadr rtabzkhpmkbrrmumcy slrrpeckytsoatnlq abenre"
     assertEquals(count(input), 19)
   }
-  test("count fail 2") {
-    val input = "ktzpyfeqzirjmanmfh hsszjxqfdwsfpivmx swqxfzdrutwn nbnrnfqhdcfhlb zlalwvrlp  vphoe echlrixxp dphxqepfyru uli nepjxvl sgpseorriqrfzgyo jixpujozsrw dtacizdb "
-    assertEquals(count(input), 19)
+  test("3 words end to end") {
+    val input = "ktzpyfeqzirjmanmfh akjsalkjs hsszjxqfdwsfpivmx"
+    assertEquals(count(input), 3)
+  }
+  test("3 words end to end space at end") {
+    val input = "abc ghi "
+    assertEquals(count(input), 2)
+  }
+  test("3 words end to end space at beginning") {
+    val input = " ktzpyfeqzirjmanmfh akjsalkjs hsszjxqfdwsfpivmx"
+    assertEquals(count(input), 3)
+  }
+  test("3 words end to end space at both ends") {
+    val input = " ktzpyfeqzirjmanmfh akjsalkjs hsszjxqfdwsfpivmx "
+    assertEquals(count(input), 3)
   }
 }
 
