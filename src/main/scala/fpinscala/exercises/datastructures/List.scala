@@ -47,29 +47,79 @@ object List: // `List` companion object. Contains functions for creating and wor
   def productViaFoldRight(ns: List[Double]): Double =
     foldRight(ns, 1.0, _ * _) // `_ * _` is more concise notation for `(x,y) => x * y`; see sidebar
 
-  def tail[A](l: List[A]): List[A] = ???
+  def tail[A](l: List[A]): List[A] = 
+    l match
+      case Nil => Nil
+      case Cons(_, tl) => tl
+    
 
-  def setHead[A](l: List[A], h: A): List[A] = ???
+  def setHead[A](l: List[A], h: A): List[A] = 
+    l match
+      case Nil => Cons(h, Nil)
+      case Cons(hd, tl) => Cons(h, Cons(hd, tl)) 
 
-  def drop[A](l: List[A], n: Int): List[A] = ???
+  def drop[A](l: List[A], n: Int): List[A] = 
+    l match
+      case Nil => Nil
+      case Cons(hd, tl) => 
+        if(n > 0)
+          drop(tl, n - 1)
+        else
+          tl
 
-  def dropWhile[A](l: List[A], f: A => Boolean): List[A] = ???
+  def dropWhile[A](l: List[A], f: A => Boolean): List[A] =
+    l match
+      case Nil => Nil
+      case Cons(head, tl) =>
+        if(f(head) == false)
+          l
+        else
+          dropWhile(tl, f)
+    
 
   def init[A](l: List[A]): List[A] = ???
 
-  def length[A](l: List[A]): Int = ???
+  def length[A](l: List[A]): Int =
+    def go(l1: List[A], len: Int): Int =
+      l1 match 
+        case Nil => len
+        case Cons(_, tl) => go(tl, len + 1)
+    go(l, 0)
 
-  def foldLeft[A,B](l: List[A], acc: B, f: (B, A) => B): B = ???
+  def listToIterator[A](l : List[A]): Iterator[A] = new:
+    var l1 = l
+    def hasNext: Boolean =
+      l1 match
+        case Nil => false
+        case Cons(_,_) => true
+    def next(): A = 
+      l1 match
+        case Nil => throw new IndexOutOfBoundsException
+        case Cons(hd, tl) => 
+          l1 = tl
+          hd
 
-  def sumViaFoldLeft(ns: List[Int]): Int = ???
+  def foldLeft[A,B](l1: List[A], acc: B, f: (B, A) => B): B =
+    val l = listToIterator(l1)
+    var acc1 = acc
+    for(a <- l)
+      acc1 = f(acc1, a)
+    acc1
 
-  def productViaFoldLeft(ns: List[Double]): Double = ???
+  def sumViaFoldLeft(ns: List[Int]): Int =
+    foldLeft(ns, 0, (b,a) => b + a)
 
-  def lengthViaFoldLeft[A](l: List[A]): Int = ???
+  def productViaFoldLeft(ns: List[Double]): Double =
+    foldLeft(ns, 1, (b,a) => b * a)
 
-  def reverse[A](l: List[A]): List[A] = ???
+  def lengthViaFoldLeft[A](l: List[A]): Int =
+    foldLeft(l, 0, (b,a) => b + 1)
 
-  def appendViaFoldRight[A](l: List[A], r: List[A]): List[A] = ???
+  def reverse[A](l: List[A]): List[A] =
+    foldLeft(l, Nil, (b,a) => Cons(a,b))
+
+  def appendViaFoldRight[A](l: List[A], r: List[A]): List[A] =
+    foldRight(r, l, (a,b) => Cons(a, b))
 
   def concat[A](l: List[List[A]]): List[A] = ???
 
