@@ -1,5 +1,7 @@
 package fpinscala.exercises.datastructures
 
+import scala.collection.mutable.ListBuffer
+
 /** `List` data type, parameterized on a type, `A`. */
 enum List[+A]:
   /** A `List` data constructor representing the empty list. */
@@ -131,24 +133,59 @@ object List: // `List` companion object. Contains functions for creating and wor
     foldLeft(l, Nil, (b,a) => Cons(a,b))
 
   def appendViaFoldRight[A](l: List[A], r: List[A]): List[A] =
-    foldRight(r, l, (a,b) => Cons(a, b))
+    foldRight(l, r, (a,b) => Cons(a, b))
 
-  def concat[A](l: List[List[A]]): List[A] = ???
+  def concat[A](l: List[List[A]]): List[A] =  
+    foldRight(l, Nil: List[A], (a,b) => append(a, b))
 
-  def incrementEach(l: List[Int]): List[Int] = ???
+  def incrementEach(l: List[Int]): List[Int] = map(l, _ + 1)
 
-  def doubleToString(l: List[Double]): List[String] = ???
+  def doubleToString(l: List[Double]): List[String] =  map(l, _.toString)
 
-  def map[A,B](l: List[A], f: A => B): List[B] = ???
+  def map[A,B](l: List[A], f: A => B): List[B] =
+    val iter = listToIterator(l)
+    var out: List[B] = Nil
+    for(el <- iter)
+      out = Cons(f(el), out)
+    reverse(out)
 
-  def filter[A](as: List[A], f: A => Boolean): List[A] = ???
+  def filter[A](l: List[A], f: A => Boolean): List[A] =
+    val iter = listToIterator(l)
+    var out: List[A] = Nil
+    for(el <- iter)
+      if(f(el))
+        out = Cons(el, out)
+    reverse(out)
 
-  def flatMap[A,B](as: List[A], f: A => List[B]): List[B] = ???
+  def flatMap[A,B](as: List[A], f: A => List[B]): List[B] =
+    val mapped = map(as, f)
+    val iter = listToIterator(mapped)
+    var out: List[B] = Nil
+    for(el <- iter)
+      val iter2 = listToIterator(el)
+      for(el2 <- iter2)
+        out = Cons(el2, out)
+    reverse(out)
 
-  def filterViaFlatMap[A](as: List[A], f: A => Boolean): List[A] = ???
+  def filterViaFlatMap[A](as: List[A], f: A => Boolean): List[A] = 
+    flatMap(as, (a) => {
+      val r = f(a)
+      if(r)
+        Cons(a, Nil)
+      else
+        Nil
+    })
 
-  def addPairwise(a: List[Int], b: List[Int]): List[Int] = ???
+  def addPairwise(a: List[Int], b: List[Int]): List[Int] = 
+    zipWith(a,b,(a,b) => a + b)
 
-  // def zipWith - TODO determine signature
+  def zipWith[A, B, C](a: List[A], b: List[B], f: (A, B) => C): List[C] =
+    val ia = listToIterator(a)
+    val ib = listToIterator(b)
+    var out = Nil: List[C]
+    while (ia.hasNext && ib.hasNext) {
+      out = Cons(f(ia.next(), ib.next()), out)
+    }
+    reverse(out)
 
   def hasSubsequence[A](sup: List[A], sub: List[A]): Boolean = ???
