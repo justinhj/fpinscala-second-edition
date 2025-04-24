@@ -49,23 +49,23 @@ object List: // `List` companion object. Contains functions for creating and wor
 
   def tail[A](l: List[A]): List[A] = 
     l match
-      case Nil => Nil
+      case Nil => throw new Exception
       case Cons(_, tl) => tl
     
 
   def setHead[A](l: List[A], h: A): List[A] = 
     l match
-      case Nil => Cons(h, Nil)
-      case Cons(hd, tl) => Cons(h, Cons(hd, tl)) 
+      case Nil => throw new Exception
+      case Cons(_, tl) => Cons(h, tl) 
 
   def drop[A](l: List[A], n: Int): List[A] = 
     l match
       case Nil => Nil
-      case Cons(hd, tl) => 
+      case Cons(_, tl) => 
         if(n > 0)
           drop(tl, n - 1)
         else
-          tl
+          l
 
   def dropWhile[A](l: List[A], f: A => Boolean): List[A] =
     l match
@@ -76,8 +76,20 @@ object List: // `List` companion object. Contains functions for creating and wor
         else
           dropWhile(tl, f)
     
+  // edge cases 
+  // empty list = exception
+  // 1, nil = 
 
-  def init[A](l: List[A]): List[A] = ???
+  def init[A](l: List[A]): List[A] =
+    l match
+      case Nil => throw new UnsupportedOperationException
+      case _ => 
+        def go(in: List[A], out: List[A]): List[A] =
+          in match
+            case Nil => ???
+            case Cons(h1, Cons(h2, t)) => go(Cons(h2, t), Cons(h1, out))
+            case Cons(h,Nil) => out
+        reverse(go(l, Nil))
 
   def length[A](l: List[A]): Int =
     def go(l1: List[A], len: Int): Int =
