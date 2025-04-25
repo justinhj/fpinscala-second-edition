@@ -69,6 +69,17 @@ object Either:
       case (Left(e1), Right(_)) => Left(e1)
       case (Right(_), Left(e1)) => Left(e1)
 
-  def traverseAll[E, A, B](as: List[A], f: A => Either[List[E], B]): Either[List[E], List[B]] = ???
+  def traverseAll[E, A, B](as: List[A], f: A => Either[List[E], B]): Either[List[E], List[B]] =
+    as.foldLeft(Right(List.empty[B]) : Either[List[E], List[B]])((acc, a) => 
+        f(a) match
+          case Left(err1) => 
+            acc match
+              case Left(err2) => Left(err1 ++ err2)
+              case Right(_) => Left(err1)
+          case Right(b) =>
+            acc match
+              case Left(err) => Left(err)
+              case Right(bs) => Right(b +: bs)).map(_.reverse)
 
-  def sequenceAll[E, A](as: List[Either[List[E], A]]): Either[List[E], List[A]] = ???
+  def sequenceAll[E, A](as: List[Either[List[E], A]]): Either[List[E], List[A]] =
+    traverseAll(as, identity)
