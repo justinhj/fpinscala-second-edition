@@ -188,4 +188,18 @@ object List: // `List` companion object. Contains functions for creating and wor
     }
     reverse(out)
 
-  def hasSubsequence[A](sup: List[A], sub: List[A]): Boolean = ???
+  def sequenceMatch[A](a: List[A], sub: List[A]) : Boolean = 
+    val matches = zipWith(a,sub,(a,b) => a == b)
+    foldRight(matches, true, (a,b) => if(a && b) true else false)
+
+  def hasSubsequence[A](sup: List[A], sub: List[A]): Boolean = 
+    if(sub == Nil)
+      true
+    else
+      sup match
+        case Nil => false
+        case Cons(hd,tl) => 
+          if(sequenceMatch(sup, sub))
+            true
+          else
+            hasSubsequence(tl, sub)
