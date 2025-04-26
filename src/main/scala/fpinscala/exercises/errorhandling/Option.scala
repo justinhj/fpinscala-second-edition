@@ -52,10 +52,33 @@ object Option:
     if xs.isEmpty then None
     else Some(xs.sum / xs.length)
 
-  def variance(xs: Seq[Double]): Option[Double] = ???
+  def variance(xs: Seq[Double]): Option[Double] =
+    val mn = mean(xs)
+    mn match
+      case None => None
+      case Some(m1) =>
+        val diffsSquared = xs.map(a => (a - m1) * (a - m1))
+        Some(diffsSquared.sum / xs.length)
 
-  def map2[A,B,C](a: Option[A], b: Option[B])(f: (A, B) => C): Option[C] = ???
+  def map2[A,B,C](a: Option[A], b: Option[B])(f: (A, B) => C): Option[C] =
+    (a,b) match
+      case (None, None) => None
+      case (None, _) => None
+      case (_, None) => None
+      case (Some(a), Some(b)) => Some(f(a,b))
 
-  def sequence[A](as: List[Option[A]]): Option[List[A]] = ???
+  def sequence[A](as: List[Option[A]]): Option[List[A]] =
+    traverse(as)((oa: Option[A]) => 
+        oa match 
+          case Some(a) => Some(a)
+          case None => None)
 
-  def traverse[A, B](as: List[A])(f: A => Option[B]): Option[List[B]] = ???
+  def traverse[A, B](as: List[A])(f: A => Option[B]): Option[List[B]] =
+    as.foldLeft(Some(List.empty[B]) : Option[List[B]])((acc, a) =>
+        f(a) match
+          case Some(b) =>
+            acc match
+              case None => None
+              case Some(bs) =>
+                Some(b +: bs)
+          case None => None).map(_.reverse)
