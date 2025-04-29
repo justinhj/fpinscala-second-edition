@@ -12,9 +12,9 @@ enum Tree[+A]:
 
   def depth: Int = 
     this match
-      case Leaf(_) => 1 
+      case Leaf(_) => 0 
       case Branch(l, r) => 1 +
-        l.depth + r.depth
+        math.max(l.depth, r.depth)
 
   def map[B](f: A => B): Tree[B] = 
     this match
@@ -31,13 +31,15 @@ enum Tree[+A]:
         g(lf, rf)
   
   def sizeViaFold: Int =
-    this.fold(_ => 1, (a,b) => a + b)
+    this.fold(_ => 1, (a,b) => 1 + a + b)
   
   def depthViaFold: Int =
-    this.fold(_ => 1, (a,b) => math.max(a,b))
+    this.fold(_ => 1, (a,b) => 1 + math.max(a,b))
   
+  // fold takes A => B and a combine function for B
+  // since we want a Tree[B] then B is Tree of B
   def mapViaFold[B](f: A => B): Tree[B] =
-    ???
+    this.fold(a => Leaf(f(a)), (b1,b2) => ???): Tree[B]
 
 object Tree:
 
@@ -46,22 +48,11 @@ object Tree:
     case Branch(l,r) => 1 + size(l) + size(r)
 
   extension (t: Tree[Int]) def firstPositive: Int =
-    def go(t1: Tree[Int], fp: Option[Int]): Option[Int] = 
-      t1 match
-        case Leaf(v) if v > 0 => 
-          fp match 
-            case None => Some(v)
-            case Some(a) => Some(a)
-        case Leaf(_) => fp
-        case Branch(l,r) =>
-          val lo = go(l, fp)
-          val ro = go(r, fp)
-          (lo, ro) match
-            case (Some(a), Some(b)) => throw new Exception()
-            case (Some(a), _) => Some(a)
-            case (_, Some(a)) => Some(a)
-            case (None, None) => None
-    go(t, None).get
+    t match
+      case Leaf(i) => i
+      case Branch(l,r) =>
+        val lb = l.firstPositive
+        if(lb > 0) lb else r.firstPositive
 
   extension (t: Tree[Int]) def maximum: Int =
     def go(t1: Tree[Int], max: Int): Int = 
