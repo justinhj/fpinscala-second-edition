@@ -34,12 +34,17 @@ enum Tree[+A]:
     this.fold(_ => 1, (a,b) => 1 + a + b)
   
   def depthViaFold: Int =
-    this.fold(_ => 1, (a,b) => 1 + math.max(a,b))
+    this.fold(_ => 0, (a,b) => 1 + math.max(a,b))
   
   // fold takes A => B and a combine function for B
   // since we want a Tree[B] then B is Tree of B
+  // Fold accumulates a value B on the tree[A]
+  // It applies f on the leaf only to make B's
+  // at branches it combines branches using g
+  // So f(a) should create a leaf
+  // and g should combine branches
   def mapViaFold[B](f: A => B): Tree[B] =
-    this.fold(a => Leaf(f(a)), (b1,b2) => ???): Tree[B]
+    this.fold(a => Leaf(f(a)), (b1,b2) => Branch(b1, b2))
 
 object Tree:
 
