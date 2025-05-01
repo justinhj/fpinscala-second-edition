@@ -14,21 +14,6 @@ shell, which you can fill in and modify while working through the chapter.
 
 opaque type Gen[+A] = State[RNG, A]
 
-def choose(start: Int, stopExclusive: Int): Gen[Int] =
-  State(rng =>
-    val (i, rng2) = rng.nextInt
-    val n = start + (math.abs(i)) % (stopExclusive - start)
-    (n, rng2)
-  )
-
-def unit[A](a: => A): Gen[A] = 
-  State(rng => (a, rng))
-
-def boolean: Gen[Boolean] = 
-  State(rng =>
-      val (i,rng2) = rng.nextInt
-      (i % 2 == 1, rng2))
-
 trait Prop:
   def check: Boolean
 
@@ -46,6 +31,32 @@ object Gen:
 
   def unit[A](a: => A): Gen[A] =
     State(rng => (a, rng))
+
+  def union[A](g1: Gen[A], g2: Gen[A]): Gen[A] =
+      boolean.flatMap(coin => 
+          if(coin) g1 else g2)
+
+  def choose(start: Int, stopExclusive: Int): Gen[Int] =
+    State(rng =>
+      val (i, rng2) = rng.nextInt
+      val n = start + (math.abs(i)) % (stopExclusive - start)
+      (n, rng2)
+    )
+
+  def weighted[A](g1: (Gen[A], Double), g2: (Gen[A], Double)): Gen[A] = 
+    State(rng =>
+      val sum = g1._2 + g2._2
+      val (i, rng2) = RNG.double(rng)
+      val c = i * sum 
+      if(c < g1._2) 
+        g1._1.run(rng2)
+      else 
+        g2._1.run(rng2)
+    )
+  def boolean: Gen[Boolean] = 
+    State(rng =>
+        val (i,rng2) = rng.nextInt
+        (i % 2 == 1, rng2))
 
   extension [A](self: Gen[A])
     def flatMap[B](f: A => Gen[B]): Gen[B] =
