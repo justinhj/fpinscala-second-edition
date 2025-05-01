@@ -12,25 +12,60 @@ The library developed in this chapter goes through several iterations. This file
 shell, which you can fill in and modify while working through the chapter.
 */
 
-// opaque type Gen[+A] = State[RNG, A]
+opaque type Gen[+A] = State[RNG, A]
 
-trait Prop
+def choose(start: Int, stopExclusive: Int): Gen[Int] =
+  State(rng =>
+    val (i, rng2) = rng.nextInt
+    val n = start + (math.abs(i)) % (stopExclusive - start)
+    (n, rng2)
+  )
+
+def unit[A](a: => A): Gen[A] = 
+  State(rng => (a, rng))
+
+def boolean: Gen[Boolean] = 
+  State(rng =>
+      val (i,rng2) = rng.nextInt
+      (i % 2 == 1, rng2))
+
+trait Prop:
+  def check: Boolean
 
 object Prop:
   def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = ???
 
+  extension (self: Prop)
+    def &&(other: Prop) : Boolean = 
+      self.check && other.check
+
 object Gen:
   extension [A](self: Gen[A])
-    // We should use a different method name to avoid looping (not 'run')
-    def next(rng: RNG): (A, RNG) = ??? // self.run(rng)
+    def next(rng: RNG): (A, RNG) =
+      self.run(rng) 
 
-  def unit[A](a: => A): Gen[A] = ???
+  def unit[A](a: => A): Gen[A] =
+    State(rng => (a, rng))
 
   extension [A](self: Gen[A])
-    def flatMap[B](f: A => Gen[B]): Gen[B] = ???
+    def flatMap[B](f: A => Gen[B]): Gen[B] =
+      State(rng =>
+        val (a, rng2) = self.run(rng)
+        f(a).run(rng2)
+      )
+    def map[B](f: A => B): Gen[B] =
+      flatMap(a => unit(f(a)))
 
-trait Gen[A]:
-  def map[B](f: A => B): Gen[B] = ???
-  def flatMap[B](f: A => Gen[B]): Gen[B] = ???
+  extension [A](self: Gen[A])
+    def listOfN(n: Int): Gen[List[A]] = 
+      def go(n: Int, acc: List[A], rng: RNG) : (List[A], RNG) =
+        if(n >= 0 ) then 
+          val (i, rng2) = self.run(rng)
+          go(n - 1, acc :+ i, rng2)
+        else
+          (acc, rng)
+        
+      State(rng => go(n, List.empty[A], rng))
+
 
 trait SGen[+A]

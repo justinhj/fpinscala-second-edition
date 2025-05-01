@@ -7,4 +7,4 @@
 //> using options "-Wconf:msg=with:silent"
 //> using options "-Wconf:msg=old given syntax:silent"
 
-//> using dep "org.scalameta::munit:1.1.0"
+//> using dep "org.scalameta::munit:1.1.1"
