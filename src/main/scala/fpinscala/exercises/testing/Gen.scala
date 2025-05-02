@@ -81,6 +81,22 @@ object Prop:
         case Passed => 
           Passed
 
+    def check(
+      maxSize: MaxSize = 100,
+      testCases: TestCases = 100,
+      rng: RNG = RNG.Simple(System.currentTimeMillis)
+    ): Result =
+      self(maxSize, testCases, rng)
+
+    def run(maxSize: MaxSize = 100,
+            testCases: TestCases = 100,
+            rng: RNG = RNG.Simple(System.currentTimeMillis)): Unit =
+      self(maxSize, testCases, rng) match
+        case Falsified(msg, n) =>
+          println(s"! Falsified after $n passed tests:\n $msg")
+        case Passed =>
+          println(s"+ OK, passed $testCases tests.")
+
   def randomLazyList[A](g: Gen[A])(rng: RNG): LazyList[A] =
     LazyList.unfold(rng)(rng => Some(g.run(rng)))
    
@@ -156,6 +172,8 @@ object Gen:
     def list: SGen[List[A]] = 
       count => self.listOfN(count)
 
+    def nonEmptyList: SGen[List[A]] = 
+      count => self.listOfN(math.max(count,1))
 
 opaque type SGen[+A] = Int => Gen[A]
 
