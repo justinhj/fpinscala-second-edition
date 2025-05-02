@@ -99,10 +99,8 @@ object Gen:
 
   def weighted[A](g1: (Gen[A], Double), g2: (Gen[A], Double)): Gen[A] = 
     State(rng =>
-      val sum = g1._2 + g2._2
       val (i, rng2) = RNG.double(rng)
-      val c = i * sum 
-      if(c < g1._2) 
+      if(i >= g1._2) 
         g1._1.run(rng2)
       else 
         g2._1.run(rng2)
@@ -133,5 +131,21 @@ object Gen:
         
       State(rng => go(n, List.empty[A], rng))
 
+    def unsized: SGen[A] = a => self
 
-trait SGen[+A]
+    def list: SGen[List[A]] = 
+      count => self.listOfN(count)
+
+
+opaque type SGen[+A] = Int => Gen[A]
+
+object SGen:
+    extension [A](self: SGen[A])
+      def apply(n: Int): Gen[A] = self(n)
+
+      def map[B](f: A => B): SGen[B] =
+        self(_).map(f)
+
+      def flatMap[B](f: A => SGen[B]): SGen[B] =
+        n => self(n).flatMap(f(_)(n))
+
