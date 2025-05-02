@@ -26,7 +26,6 @@ object Gen:
 */
 
 // Gen tests:
-/*
   test("Exercise 8.4")(ExhGen.int ** ExhGen.int ** genRNG):
     case n ** m ** rng =>
       val (start, stopExclusive) = if n < m then (n, m) else (m, n)
@@ -59,7 +58,9 @@ object Gen:
 
   test("Exercise 8.6, listOfN")(genShortNumber ** genRNG):
     case n ** rng =>
-      val (randomBooleanList, _) = Gen.boolean.listOfN(Gen.unit(n)).next(rng)
+      val (randomBooleanList, _) = 
+        Gen.unit(n).flatMap(n1 =>  
+          Gen.boolean.listOfN(n1)).next(rng)
       assertEquals(randomBooleanList.length, n)
 
   test("Exercise 8.7")(ExhGen.int ** ExhGen.int ** genRNG):
@@ -91,7 +92,6 @@ object Gen:
       val (unionList3, _) = genUnion3.listOfN(shortSample).next(rng)
       assert(unionList3.count(_ == n) >= shortSample / 5, "g2 is twice as common as g1")
       assert(unionList3.count(_ == m) >= shortSample / 2, "g2 is twice as common as g1")
-*/
 
 
 // Prop tests: Before using these tests (starting from Exercise 8.9),

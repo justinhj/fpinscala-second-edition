@@ -35,7 +35,7 @@ object RNG:
 
   def double(rng: RNG): (Double, RNG) =
     val (next, r2) = rng.nextInt
-    (1.0 / next, r2)
+    (math.abs(next).toDouble / Int.MaxValue.toDouble, r2)
 
   def intDouble(rng: RNG): ((Int,Double), RNG) =
     val (newInt, r2) = rng.nextInt

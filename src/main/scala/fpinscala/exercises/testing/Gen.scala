@@ -5,6 +5,7 @@ import fpinscala.exercises.parallelism.*
 import fpinscala.exercises.parallelism.Par.Par
 import Gen.*
 import Prop.*
+import Result.*
 import java.util.concurrent.{Executors,ExecutorService}
 
 /*
@@ -14,15 +15,68 @@ shell, which you can fill in and modify while working through the chapter.
 
 opaque type Gen[+A] = State[RNG, A]
 
-trait Prop:
-  def check: Boolean
+opaque type TestCases = Int
+object TestCases:
+  extension (x: TestCases) def toInt: Int = x
+  def fromInt(x: Int) : TestCases = x
+
+opaque type Prop = (TestCases, RNG) => Result
 
 object Prop:
-  def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = ???
+  opaque type FailedCase = String
+  opaque type SuccessCount = Int
 
+  def failedCase(s: String): FailedCase = s
+  def successCount(n: Int): SuccessCount = n
+ 
   extension (self: Prop)
-    def &&(other: Prop) : Boolean = 
-      self.check && other.check
+    def &&(that: Prop) : Prop = 
+      (tc, rng) => 
+        self(tc, rng) match 
+        case F @ Falsified(msg, c) => F
+        case Passed => 
+          that(tc, rng)
+
+    def ||(that: Prop): Prop =
+      (tc, rng) => 
+        self(tc, rng) match 
+        case F @ Falsified(msg, c) => 
+          that(c, rng)
+        case Passed => 
+          Passed
+
+  def forAll[A](as: Gen[A])(f: A => Boolean): Prop =
+    (n, rng) =>
+      randomLazyList(as)(rng)
+        .zip(LazyList.from(0))
+        .take(n)
+        .map:
+          case (a, i) =>
+            try
+              if f(a) then Passed
+              else Falsified(failedCase(a.toString), successCount(i))
+            catch
+              case e: Exception =>
+                Falsified(failedCase(buildMsg(a, e)), successCount(i))
+        .find(_.isFalsified)
+        .getOrElse(Passed)
+   
+  def randomLazyList[A](g: Gen[A])(rng: RNG): LazyList[A] =
+    LazyList.unfold(rng)(rng => Some(g.run(rng)))
+   
+  def buildMsg[A](s: A, e: Exception): String =
+    s"test case: $s\n" +
+    s"generated an exception: ${e.getMessage}\n" +
+    s"stack trace:\n ${e.getStackTrace.mkString("\n")}"
+
+enum Result:
+  case Passed
+  case Falsified(
+    failure: FailedCase, successes: SuccessCount)
+ 
+  def isFalsified: Boolean = this match
+    case Passed => false
+    case Falsified(_, _) => true
 
 object Gen:
   extension [A](self: Gen[A])
@@ -56,7 +110,8 @@ object Gen:
   def boolean: Gen[Boolean] = 
     State(rng =>
         val (i,rng2) = rng.nextInt
-        (i % 2 == 1, rng2))
+        val d1000 = math.abs(i) % 1000
+        (d1000 >= 500, rng2))
 
   extension [A](self: Gen[A])
     def flatMap[B](f: A => Gen[B]): Gen[B] =
@@ -70,7 +125,7 @@ object Gen:
   extension [A](self: Gen[A])
     def listOfN(n: Int): Gen[List[A]] = 
       def go(n: Int, acc: List[A], rng: RNG) : (List[A], RNG) =
-        if(n >= 0 ) then 
+        if(n > 0 ) then 
           val (i, rng2) = self.run(rng)
           go(n - 1, acc :+ i, rng2)
         else
