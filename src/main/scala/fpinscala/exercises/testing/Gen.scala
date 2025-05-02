@@ -20,33 +20,16 @@ object TestCases:
   extension (x: TestCases) def toInt: Int = x
   def fromInt(x: Int) : TestCases = x
 
-opaque type Prop = (TestCases, RNG) => Result
-
-object Prop:
-  opaque type FailedCase = String
-  opaque type SuccessCount = Int
-
-  def failedCase(s: String): FailedCase = s
-  def successCount(n: Int): SuccessCount = n
+opaque type MaxSize = Int
+object MaxSize:
+  extension (x: MaxSize) def toInt: Int = x
+  def fromInt(x: Int): MaxSize = x
  
-  extension (self: Prop)
-    def &&(that: Prop) : Prop = 
-      (tc, rng) => 
-        self(tc, rng) match 
-        case F @ Falsified(msg, c) => F
-        case Passed => 
-          that(tc, rng)
-
-    def ||(that: Prop): Prop =
-      (tc, rng) => 
-        self(tc, rng) match 
-        case F @ Falsified(msg, c) => 
-          that(c, rng)
-        case Passed => 
-          Passed
-
+opaque type Prop = (MaxSize, TestCases, RNG) => Result
+ 
+object Prop:
   def forAll[A](as: Gen[A])(f: A => Boolean): Prop =
-    (n, rng) =>
+    (max, n, rng) =>
       randomLazyList(as)(rng)
         .zip(LazyList.from(0))
         .take(n)
@@ -60,7 +43,44 @@ object Prop:
                 Falsified(failedCase(buildMsg(a, e)), successCount(i))
         .find(_.isFalsified)
         .getOrElse(Passed)
-   
+
+  @annotation.targetName("forAllSized")
+  def forAll[A](g: SGen[A])(f: A => Boolean): Prop =
+    (max, n, rng) =>
+      val casesPerSize = (n.toInt - 1) / max.toInt + 1
+      val props: LazyList[Prop] =
+        LazyList.from(0)
+          .take((n.toInt min max.toInt) + 1)
+          .map(i => forAll(g(i))(f))
+      val prop: Prop =
+        props.map[Prop](p => (max, n, rng) =>
+          p(max, casesPerSize, rng))
+            .toList
+            .reduce(_ && _)
+      prop(max, n, rng)
+
+  opaque type FailedCase = String
+  opaque type SuccessCount = Int
+
+  def failedCase(s: String): FailedCase = s
+  def successCount(n: Int): SuccessCount = n
+ 
+  extension (self: Prop)
+    def &&(that: Prop) : Prop = 
+      (max, tc, rng) => 
+        self(max, tc, rng) match 
+        case F @ Falsified(msg, c) => F
+        case Passed => 
+          that(max, tc, rng)
+
+    def ||(that: Prop): Prop =
+      (max, tc, rng) => 
+        self(max, tc, rng) match 
+        case F @ Falsified(msg, c) => 
+          that(max, c, rng)
+        case Passed => 
+          Passed
+
   def randomLazyList[A](g: Gen[A])(rng: RNG): LazyList[A] =
     LazyList.unfold(rng)(rng => Some(g.run(rng)))
    
@@ -100,7 +120,7 @@ object Gen:
   def weighted[A](g1: (Gen[A], Double), g2: (Gen[A], Double)): Gen[A] = 
     State(rng =>
       val (i, rng2) = RNG.double(rng)
-      if(i >= g1._2) 
+      if(i < g1._2) 
         g1._1.run(rng2)
       else 
         g2._1.run(rng2)
