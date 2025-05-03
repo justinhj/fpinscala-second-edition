@@ -38,7 +38,7 @@ trait Monad[F[_]] extends Functor[F]:
       fa.flatMap(a => fb.map(b => f(a, b)))
 
   def sequence[A](fas: List[F[A]]): F[List[A]] =
-    fas.foldLeft(unit(Nil)) { (acc, fa) =>
+    fas.foldRight(unit(Nil)) { (fa, acc) =>
       acc.flatMap(as => fa.map(a => a :: as))
     }
 
@@ -66,7 +66,7 @@ trait Monad[F[_]] extends Functor[F]:
 
   // Basically sequence with an effectful if
   def filterM[A](as: List[A])(f: A => F[Boolean]): F[List[A]] =
-    as.foldLeft(unit(Nil)) { (acc, a) =>
+    as.foldRight(unit(Nil)) { (a, acc) =>
       acc.flatMap(as => f(a).map(ab => if(ab) a :: as else as))
     }
 
@@ -91,16 +91,16 @@ object Monad:
         Gen.flatMap(fa)(f)
 
   given parMonad: Monad[Par]:
-    def unit[A](a: => A) = ???
+    def unit[A](a: => A) = Par.unit(a)
     extension [A](fa: Par[A])
       override def flatMap[B](f: A => Par[B]): Par[B] =
-        ???
+        Par.flatMap(fa)(f)
 
   def parserMonad[P[+_]](p: Parsers[P]): Monad[P] = new:
-    def unit[A](a: => A) = ???
+    def unit[A](a: => A) = p.succeed(a)
     extension [A](fa: P[A])
       override def flatMap[B](f: A => P[B]): P[B] =
-        ???
+        p.flatMap(fa)(f)
 
   given optionMonad: Monad[Option]:
     def unit[A](a: => A) = Option(a)
