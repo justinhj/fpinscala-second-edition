@@ -187,3 +187,15 @@ object SGen:
       def flatMap[B](f: A => SGen[B]): SGen[B] =
         n => self(n).flatMap(f(_)(n))
 
+
+val smallInt = Gen.choose(-10, 10)
+
+val maxProp = Prop.forAll(smallInt.nonEmptyList): l =>
+  val max = l.max
+  l.forall(_ <= max)
+
+val sortedProp = Prop.forAll(smallInt.nonEmptyList): l =>
+  val sl = l.sorted
+  val lt = sl.tail
+  val zp = sl.zip(lt)
+  zp.forall((a,b) => a <= b)
