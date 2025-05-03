@@ -8,6 +8,11 @@ enum Either[+E,+A]:
   case Left(get: E)
   case Right(get: A)
 
+  def isLeft: Boolean =
+    this match
+      case Left(_) => true
+      case _ => false
+
   def map[B](f: A => B): Either[E, B] = 
     this match
       case Left(e) => Left(e)
