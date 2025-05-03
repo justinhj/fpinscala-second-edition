@@ -1,6 +1,7 @@
 package fpinscala.exercises.monoids
 
 import fpinscala.exercises.parallelism.Nonblocking.*
+import fpinscala.exercises.testing.*
 
 trait Monoid[A]:
   def combine(a1: A, a2: A): A
@@ -51,9 +52,17 @@ object Monoid:
       a => a2(a1(a))
 
   import fpinscala.exercises.testing.{Prop, Gen}
-  // import Gen.`**`
+  import Gen.`**`
 
-  def monoidLaws[A](m: Monoid[A], gen: Gen[A]): Prop = ???
+  def monoidLaws[A](m: Monoid[A], gen: Gen[A]): Prop = 
+    val gen2 = gen ** gen ** gen
+    val associativity = Prop.forAll(gen2) { case a ** b ** c =>
+      m.combine(m.combine(a, b), c) == m.combine(a, m.combine(b, c))
+    }
+    val identity = Prop.forAll(gen) { a =>
+      m.combine(m.empty, a) == a && m.combine(a, m.empty) == a
+    }
+    associativity && identity
 
   def combineAll[A](as: List[A], m: Monoid[A]): A =
     as.foldLeft(m.empty)((b, a) => m.combine(b, a))

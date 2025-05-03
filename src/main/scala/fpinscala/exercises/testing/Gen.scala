@@ -7,6 +7,7 @@ import Gen.*
 import Prop.*
 import Result.*
 import java.util.concurrent.{Executors,ExecutorService}
+import annotation.targetName
 
 /*
 The library developed in this chapter goes through several iterations. This file is just the
@@ -119,6 +120,15 @@ object Gen:
     def next(rng: RNG): (A, RNG) =
       self.run(rng) 
 
+    def map2[B,C](that: Gen[B])(f: (A, B) => C): Gen[C] =
+      State.map2(self)(that)(f)
+
+    @targetName("product")
+    def **[B](gb: Gen[B]): Gen[(A, B)] =
+      map2(gb)((_, _))
+
+  def apply[A](s: State[RNG, A]): Gen[A] = s
+
   def unit[A](a: => A): Gen[A] =
     State(rng => (a, rng))
 
@@ -175,6 +185,10 @@ object Gen:
     def nonEmptyList: SGen[List[A]] = 
       count => self.listOfN(math.max(count,1))
 
+  object `**`:
+    def unapply[A, B](p: (A, B)) = Some(p)
+end Gen
+
 opaque type SGen[+A] = Int => Gen[A]
 
 object SGen:
@@ -187,6 +201,10 @@ object SGen:
       def flatMap[B](f: A => SGen[B]): SGen[B] =
         n => self(n).flatMap(f(_)(n))
 
+      def **[B](s2: SGen[B]): SGen[(A, B)] =
+        n => Gen.**(apply(n))(s2(n))
+
+    def apply[A](f: Int => Gen[A]): SGen[A] = f
 
 val smallInt = Gen.choose(-10, 10)
 
