@@ -39,27 +39,27 @@ object RNG:
 
   def intDouble(rng: RNG): ((Int,Double), RNG) =
     val (newInt, r2) = rng.nextInt
-    val (newDouble, r3) = r2.nextInt
-    ((newInt, 1.0 / newDouble), r3)
+    val (newDouble, r3) = double(r2)
+    ((newInt, newDouble), r3)
 
   def doubleInt(rng: RNG): ((Double,Int), RNG) =
-    val (newDouble, r2) = rng.nextInt
+    val (newDouble, r2) = double(rng)
     val (newInt, r3) = r2.nextInt
-    ((1.0 / newDouble, newInt), r3)
+    ((newDouble, newInt), r3)
 
   def double3(rng: RNG): ((Double,Double,Double), RNG) =
-    val (newDouble1, r2) = rng.nextInt
-    val (newDouble2, r3) = rng.nextInt
-    val (newDouble3, r4) = rng.nextInt
-    ((1.0 / newDouble1, 1.0 / newDouble2, 1.0 / newDouble3), r4)
+    val (newDouble1, r2) = double(rng)
+    val (newDouble2, r3) = double(r2)
+    val (newDouble3, r4) = double(r3)
+    ((newDouble1, newDouble2, newDouble3), r4)
 
   def ints(count: Int)(rng: RNG): (List[Int], RNG) =
     var r = rng
-    val l = List.empty[Int]
-    for(i <- 0 to count) yield
+    var l = List.empty[Int]
+    for(i <- 1 to count) yield
       val (next, r2) = r.nextInt
       r = r2
-      l :+ next
+      l = l :+ next
     (l, r)
 
   def map2[A, B, C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] =
