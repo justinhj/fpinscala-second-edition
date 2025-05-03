@@ -167,9 +167,11 @@ case class Location(input: String, offset: Int = 0):
 
 case class ParseError(stack: List[(Location,String)] = List(),
                       otherFailures: List[ParseError] = List()):
-  def push(loc: Location, msg: String): ParseError = ???
+  def push(loc: Location, msg: String): ParseError =
+    copy(stack = (loc, msg) :: stack)
 
-  def label(s: String): ParseError = ???
+  def label(s: String): ParseError =
+    copy(stack = stack.map { case (loc, _) => (loc, s) })
 
 class Examples[Parser[+_]](P: Parsers[Parser]):
   import P.*

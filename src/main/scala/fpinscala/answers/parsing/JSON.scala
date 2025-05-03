@@ -12,7 +12,7 @@ object JSON:
   def jsonParser[Parser[+_]](P: Parsers[Parser]): Parser[JSON] =
     import P.*
 
-    def token(s: String) = string(s).token
+    def token(s: String): Parser[String] = string(s).token
 
     def array: Parser[JSON] = (
       token("[") *> value.sep(token(",")).map(vs => JArray(vs.toIndexedSeq)) <* token("]")
@@ -51,6 +51,16 @@ object JSON:
 }
 """
 
+  val jsonTxtNoArray = """
+{
+  "Company name" : "Microsoft Corporation",
+  "Ticker"  : "MSFT",
+  "Active"  : true,
+  "Price"   : 30.66,
+  "Shares outstanding" : 8.38e9,
+  "Related companies" : [ "HPQ", "IBM", "YHOO", "DELL", "GOOG" ]
+}
+"""
   val malformedJson1 = """
 {
   "Company name" ; "Microsoft Corporation"
@@ -70,6 +80,8 @@ object JSON:
     e.fold(println, println)
 
   val parser = JSON.jsonParser(Reference)
+  printResult(parser.run(jsonTxtNoArray))
+  println("--")
   printResult(parser.run(jsonTxt))
   println("--")
   printResult(parser.run(malformedJson1))
