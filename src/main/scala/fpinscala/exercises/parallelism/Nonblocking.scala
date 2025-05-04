@@ -128,10 +128,11 @@ object Nonblocking:
         eval(es)(ps(n % ps.length)(es)(cb)))
 
     def choiceViaChoiceN[A](a: Par[Boolean])(ifTrue: Par[A], ifFalse: Par[A]): Par[A] =
-      es => cb => a(es): b => 
-        val index = if b then 0 else 1
-        val cl = List(ifTrue, ifFalse)
-        choiceN(Par.unit(index))(cl)
+        choiceN(a.map(b => if b then 0 else 1))(List(ifTrue, ifFalse))
+      // es => cb => a(es): b => 
+      //   val index = if b then 0 else 1
+      //   val cl = List(ifTrue, ifFalse)
+      //   choiceN(Par.unit(index))(cl)
 
     def choiceMap[K, V](p: Par[K])(ps: Map[K, Par[V]]): Par[V] =
       es => cd => p(es): k =>
