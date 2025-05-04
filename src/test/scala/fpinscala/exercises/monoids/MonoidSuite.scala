@@ -11,6 +11,7 @@ import fpinscala.exercises.parallelism.Nonblocking.*
 import munit.*
 
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class WCMonoidSuite extends FunSuite {
 
@@ -92,6 +93,17 @@ class WCMonoidSuite extends FunSuite {
 class MonoidSuite extends PropSuite:
   private val es = Executors.newFixedThreadPool(4)
 
+  override def afterAll(): Unit =
+    println("Initiating ExecutorService shutdown")
+    es.shutdown() // Ensure shutdown is called
+    val terminated = es.awaitTermination(3, TimeUnit.SECONDS)
+    if (terminated) {
+      println("ExecutorService terminated successfully")
+    } else {
+      println("ExecutorService did not terminate within 3 seconds")
+      // Log additional diagnostic information (see Step 2)
+    }
+
   test("Monoid.stringMonoid")(genString ** genString ** genString):
     case a ** b ** c =>
       assertMonoid(stringMonoid, a, b, c)
@@ -168,19 +180,19 @@ class MonoidSuite extends PropSuite:
   test("Monoid.foldMapV")(genBooleanList): list =>
     assertEquals(foldMapV(list.toIndexedSeq, intAddition)(trueCounter), trueCounter(list))
 
-  // test("Monoid.par")(genString ** genString ** genString):
-  //   case s1 ** s2 ** s3 =>
-  //     val a = Par.unit(s1)
-  //     val b = Par.unit(s2)
-  //     val c = Par.unit(s3)
-  //     val m = par(stringMonoid)
+  test("Monoid.par")(genString ** genString ** genString):
+    case s1 ** s2 ** s3 =>
+      val a = Par.unit(s1)
+      val b = Par.unit(s2)
+      val c = Par.unit(s3)
+      val m = par(stringMonoid)
 
-  //     assertEquals(m.combine(a, m.combine(b, c)).run(es), m.combine(m.combine(a, b), c).run(es), "associativity")
-  //     assertEquals(m.combine(a, m.empty).run(es), a.run(es), "identity")
-  //     assertEquals(m.combine(m.empty, a).run(es), a.run(es), "identity")
+      assertEquals(m.combine(a, m.combine(b, c)).run(es), m.combine(m.combine(a, b), c).run(es), "associativity")
+      // assertEquals(m.combine(a, m.empty).run(es), a.run(es), "identity")
+      // assertEquals(m.combine(m.empty, a).run(es), a.run(es), "identity")
 
-  // test("Monoid.parFoldMap")(genBooleanIndexedSeq): seq =>
-  //   assertEquals(parFoldMap(seq, intAddition)(trueCounter).run(es), trueCounter(seq))
+  test("Monoid.parFoldMap")(genBooleanIndexedSeq): seq =>
+    assertEquals(parFoldMap(seq, intAddition)(trueCounter).run(es), trueCounter(seq))
 
   test("Monoid.ordered")(genIntIndexedSeq): ints =>
     assertEquals(ordered(ints), ints == ints.sorted)

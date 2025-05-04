@@ -2,6 +2,7 @@ package fpinscala.exercises.parallelism
 
 import java.util.concurrent.{Callable, CountDownLatch, ExecutorService}
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.CompletableFuture
 
 object Nonblocking:
 
@@ -42,6 +43,11 @@ object Nonblocking:
         p(es) { a => ref.set(a); latch.countDown } // Asynchronously set the result, and decrement the latch
         latch.await // Block until the `latch.countDown` is invoked asynchronously
         ref.get // Once we've passed the latch, we know `ref` has been set, and return its value
+
+      def runCF(es: ExecutorService): A =
+        val future = CompletableFuture[A]()
+        p(es) { a => future.complete(a) } // Set the result in the CompletableFuture
+        future.join() // Block until the result is available and return it
 
       def map2[B, C](p2: Par[B])(f: (A, B) => C): Par[C] =
         es => cb =>
@@ -118,29 +124,45 @@ object Nonblocking:
 
     /* The code here is very similar. */
     def choiceN[A](p: Par[Int])(ps: List[Par[A]]): Par[A] =
-      ???
+      es => cb => p(es)(n =>
+        eval(es)(ps(n)(es)(cb)))
 
     def choiceViaChoiceN[A](a: Par[Boolean])(ifTrue: Par[A], ifFalse: Par[A]): Par[A] =
-      ???
+      es => cb => a(es): b => 
+        val index = if b then 0 else 1
+        val cl = List(ifTrue, ifFalse)
+        choiceN(Par.unit(index))(cl)
 
     def choiceMap[K, V](p: Par[K])(ps: Map[K, Par[V]]): Par[V] =
-      ???
+      es => cd => p(es): k =>
+        ps.get(k) match
+          case Some(v) => eval(es)(v(es)(cd))
+          case None => throw new IllegalArgumentException("key not found")
 
     /* `chooser` is usually called `flatMap` or `bind`. */
     def chooser[A, B](p: Par[A])(f: A => Par[B]): Par[B] =
-      ???
+      es => cb => p(es): a =>
+        eval(es)(f(a)(es)(cb))
 
     def choiceViaFlatMap[A](p: Par[Boolean])(f: Par[A], t: Par[A]): Par[A] =
-      ???
+      p.flatMap(b =>
+        if b then t
+        else f
+      )
 
     def choiceNViaFlatMap[A](p: Par[Int])(choices: List[Par[A]]): Par[A] =
-      ???
+      p.flatMap(p =>
+        if p < 0 || p >= choices.length then
+          throw new IllegalArgumentException("index out of bounds")
+        else
+          choices(p)
+      )
 
-    def join[A](p: Par[Par[A]]): Par[A] =
-      ???
+    def join[A](ppa: Par[Par[A]]): Par[A] =
+      es => cb => ppa(es)(pa => eval(es)(pa(es)(cb)))
 
     def joinViaFlatMap[A](a: Par[Par[A]]): Par[A] =
-      ???
+      a.flatMap(identity)
 
     def flatMapViaJoin[A,B](p: Par[A])(f: A => Par[B]): Par[B] =
-      ???
+      join(p.map(f))
