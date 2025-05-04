@@ -125,7 +125,7 @@ object Nonblocking:
     /* The code here is very similar. */
     def choiceN[A](p: Par[Int])(ps: List[Par[A]]): Par[A] =
       es => cb => p(es)(n =>
-        eval(es)(ps(n)(es)(cb)))
+        eval(es)(ps(n % ps.length)(es)(cb)))
 
     def choiceViaChoiceN[A](a: Par[Boolean])(ifTrue: Par[A], ifFalse: Par[A]): Par[A] =
       es => cb => a(es): b => 
@@ -152,11 +152,7 @@ object Nonblocking:
 
     def choiceNViaFlatMap[A](p: Par[Int])(choices: List[Par[A]]): Par[A] =
       p.flatMap(p =>
-        if p < 0 || p >= choices.length then
-          throw new IllegalArgumentException("index out of bounds")
-        else
-          choices(p)
-      )
+          choices(p % choices.length))
 
     def join[A](ppa: Par[Par[A]]): Par[A] =
       es => cb => ppa(es)(pa => eval(es)(pa(es)(cb)))

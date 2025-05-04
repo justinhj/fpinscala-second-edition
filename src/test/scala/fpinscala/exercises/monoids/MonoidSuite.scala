@@ -9,9 +9,11 @@ import fpinscala.exercises.monoids.Monoid.*
 import fpinscala.exercises.monoids.Monoid.WC.*
 import fpinscala.exercises.parallelism.Nonblocking.*
 import munit.*
+import scala.compiletime.uninitialized
 
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.ExecutorService
 
 class WCMonoidSuite extends FunSuite {
 
@@ -91,7 +93,12 @@ class WCMonoidSuite extends FunSuite {
 }
 
 class MonoidSuite extends PropSuite:
-  private val es = Executors.newFixedThreadPool(4)
+  private var es: ExecutorService = uninitialized // Initialize as null; will be set in beforeAll
+
+  override def beforeAll(): Unit = {
+    println("Initializing ExecutorService")
+    es = Executors.newFixedThreadPool(4)
+  }
 
   override def afterAll(): Unit =
     println("Initiating ExecutorService shutdown")
