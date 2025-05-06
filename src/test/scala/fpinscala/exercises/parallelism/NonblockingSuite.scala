@@ -8,6 +8,7 @@ import fpinscala.exercises.common.PropSuite
 import fpinscala.exercises.parallelism.Nonblocking.*
 import scala.compiletime.uninitialized
 import java.util.concurrent.*
+import fpinscala.exercises.parallelism.Nonblocking.Par.* 
 
 class NonblockingSuite extends PropSuite:
 

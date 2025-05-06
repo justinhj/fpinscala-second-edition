@@ -8,6 +8,7 @@ import fpinscala.exercises.common.PropSuite
 import fpinscala.exercises.monoids.Monoid.*
 import fpinscala.exercises.monoids.Monoid.WC.*
 import fpinscala.exercises.parallelism.Nonblocking.*
+import fpinscala.exercises.parallelism.Nonblocking.Par.* 
 import munit.*
 import scala.compiletime.uninitialized
 
