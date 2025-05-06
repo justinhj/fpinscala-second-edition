@@ -3,12 +3,14 @@ package fpinscala.exercises.parallelism
 import java.util.concurrent.{Callable, CountDownLatch, ExecutorService}
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.CompletableFuture
+import scala.util.Using
+// import java.util.concurrent.StructuredTaskScope
 
 object Nonblocking:
 
-  opaque type Future[+A] = (A => Unit) => Unit
+  type Future[+A] = (A => Unit) => Unit
 
-  opaque type Par[+A] = ExecutorService => Future[A]
+  type Par[+A] = ExecutorService => Future[A]
 
   object Par:
 
@@ -37,25 +39,89 @@ object Nonblocking:
       es.submit(new Callable[Unit] { def call = r })
 
     extension [A](p: Par[A])
-      def run(es: ExecutorService): A =
-        val ref = new AtomicReference[A] // A mutable, threadsafe reference, to use for storing the result
-        val latch = new CountDownLatch(1) // A latch which, when decremented, implies that `ref` has the result
-        p(es) { a => ref.set(a); latch.countDown } // Asynchronously set the result, and decrement the latch
-        latch.await // Block until the `latch.countDown` is invoked asynchronously
-        ref.get // Once we've passed the latch, we know `ref` has been set, and return its value
+      // def run(es: ExecutorService): A =
+      //   val ref = new AtomicReference[A] // A mutable, threadsafe reference, to use for storing the result
+      //   val latch = new CountDownLatch(1) // A latch which, when decremented, implies that `ref` has the result
+      //   p(es) { a => ref.set(a); latch.countDown } // Asynchronously set the result, and decrement the latch
+      //   latch.await // Block until the `latch.countDown` is invoked asynchronously
+      //   ref.get // Once we've passed the latch, we know `ref` has been set, and return its value
 
-      def runCF(es: ExecutorService): A =
+      def run(es: ExecutorService): A =
         val future = CompletableFuture[A]()
         p(es) { a => future.complete(a) } // Set the result in the CompletableFuture
         future.join() // Block until the result is available and return it
 
+      // Requires Java with StructuredTaskScope support
+      // def map2StructuredTaskScope[B, C](p2: Par[B])(f: (A, B) => C): Par[C] =
+      //   es => cb =>
+      //         val refA = new AtomicReference[A]()
+      //         val refB = new AtomicReference[B]()
+      //         val latch = new CountDownLatch(2) // Need two results
+
+      //         val f1 = p(es)
+      //         val f2 = p2(es)
+
+      //         Using(new StructuredTaskScope()) { scope =>
+      //           // Fork task for p
+      //           scope.fork(new Callable[Object] {
+      //             def call: Object = {
+      //               f1 { a =>
+      //                 refA.set(a)
+      //                 latch.countDown()
+      //               }
+      //               null // StructuredTaskScope doesn't use the Callable's return value
+      //             }
+      //           })
+
+      //           // Fork task for p2
+      //           scope.fork(new Callable[Object] {
+      //             def call: Object = {
+      //               f2 { b =>
+      //                 refB.set(b)
+      //                 latch.countDown()
+      //               }
+      //               null // StructuredTaskScope doesn't use the Callable's return value
+      //             }
+      //           })
+
+      //           scope.join() // Wait for both tasks to complete
+      //         }
+
+      //         // After join, wait for both results and compute the final value
+      //         latch.await()
+      //         val result = f(refA.get(), refB.get())
+      //         cb(result)
+
       def map2[B, C](p2: Par[B])(f: (A, B) => C): Par[C] =
+        es => cb =>
+          val futureA = CompletableFuture[A]()
+          val futureB = CompletableFuture[B]()
+
+          p(es) { a => futureA.complete(a) }
+          p2(es) { b => futureB.complete(b) }
+
+          // Combine the results of both futures
+          futureA.thenCombine(futureB, (a: A, b: B) => f(a, b))
+                 .whenComplete((result, ex) => 
+                   if ex == null then cb(result)
+                   else throw ex // Propagate any exceptions
+                 )
+
+      // This is from the book and uses the Actor implementation to coordinate the two futures
+      def map2Actor[B, C](p2: Par[B])(f: (A, B) => C): Par[C] =
         es => cb =>
           var ar: Option[A] = None
           var br: Option[B] = None
+          // Author note:
           // this implementation is a little too liberal in forking of threads -
           // it forks a new logical thread for the actor and for stack-safety,
           // forks evaluation of the callback `cb`
+          // Justin's note:
+          // combiner is an actor. the handler function that follows simply coordinates
+          // the two Par executions of p and p2.
+          // The first result to arrive is stored as an Option 
+          // then when the second result arrives it is able to 
+          // complete the callback.
           val combiner = Actor[Either[A,B]](es):
             case Left(a) =>
               if br.isDefined then eval(es)(cb(f(a, br.get)))
@@ -63,6 +129,8 @@ object Nonblocking:
             case Right(b) =>
               if ar.isDefined then eval(es)(cb(f(ar.get, b)))
               else br = Some(b)
+          // Each par is evaluated and the callback sends the result
+          // to the combiner actor.
           p(es)(a => combiner ! Left(a))
           p2(es)(b => combiner ! Right(b))
 

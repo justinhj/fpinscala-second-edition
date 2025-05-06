@@ -2,6 +2,7 @@ package fpinscala.exercises.monoids
 
 import fpinscala.exercises.parallelism.Nonblocking.*
 import fpinscala.exercises.testing.*
+import fpinscala.exercises.parallelism.Nonblocking.Par.map2
 
 trait Monoid[A]:
   def combine(a1: A, a2: A): A
