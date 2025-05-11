@@ -1,6 +1,6 @@
 package fpinscala.answers.streamingio
 
-import fpinscala.answers.iomonad.IO
+import fpinscala.answers.iomonad.IO as FPIO
 
 object ImperativeAndLazyIO:
 
@@ -15,7 +15,7 @@ object ImperativeAndLazyIO:
 
   import java.io.*
 
-  def linesGt40k(filename: String): IO[Boolean] = IO:
+  def linesGt40k(filename: String): FPIO[Boolean] = FPIO:
     // There are a number of convenience functions in scala.io.Source
     // for reading from external sources such as files.
     val src = io.Source.fromFile(filename)
@@ -62,7 +62,7 @@ object ImperativeAndLazyIO:
 
                              */
 
-  def lines(filename: String): IO[LazyList[String]] = IO:
+  def lines(filename: String): FPIO[LazyList[String]] = FPIO:
     val src = io.Source.fromFile(filename)
     src.getLines().to(LazyList) ++ { src.close; LazyList.empty }
                             /*
