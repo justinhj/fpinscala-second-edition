@@ -51,48 +51,8 @@ object Nonblocking:
         p(es) { a => future.complete(a) } // Set the result in the CompletableFuture
         future.join() // Block until the result is available and return it
 
-      // Requires Java with StructuredTaskScope support
+      // map2Completable
       def map2[B, C](p2: Par[B])(f: (A, B) => C): Par[C] =
-        es => cb =>
-              val refA = new AtomicReference[A]()
-              val refB = new AtomicReference[B]()
-              val latch = new CountDownLatch(2) // Need two results
-
-              val f1 = p(es)
-              val f2 = p2(es)
-
-              Using(new StructuredTaskScope()) { scope =>
-                // Fork task for p
-                scope.fork(new Callable[Object] {
-                  def call: Object = {
-                    f1 { a =>
-                      refA.set(a)
-                      latch.countDown()
-                    }
-                    null // StructuredTaskScope doesn't use the Callable's return value
-                  }
-                })
-
-                // Fork task for p2
-                scope.fork(new Callable[Object] {
-                  def call: Object = {
-                    f2 { b =>
-                      refB.set(b)
-                      latch.countDown()
-                    }
-                    null // StructuredTaskScope doesn't use the Callable's return value
-                  }
-                })
-
-                scope.join() // Wait for both tasks to complete
-              }
-
-              // After join, wait for both results and compute the final value
-              latch.await()
-              val result = f(refA.get(), refB.get())
-              cb(result)
-
-      def map2Completable[B, C](p2: Par[B])(f: (A, B) => C): Par[C] =
         es => cb =>
           val futureA = CompletableFuture[A]()
           val futureB = CompletableFuture[B]()
@@ -108,6 +68,7 @@ object Nonblocking:
                  )
 
       // This is from the book and uses the Actor implementation to coordinate the two futures
+      // map2Actor
       def map2Actor[B, C](p2: Par[B])(f: (A, B) => C): Par[C] =
         es => cb =>
           var ar: Option[A] = None
